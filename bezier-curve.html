@@ -1,0 +1,221 @@
+<!-- again, this code was not totally translated -->
+<!DOCTYPE html>
+<html lang = 'en'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>bezier curves</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			.botao-input-bezier {
+				position: absolute;
+				top: 5px;
+				background-color: transparent;
+				user-select: none;
+				border: none;
+			}
+			.svg-input-bezier-grey {
+				fill: rgb(127, 127, 127);
+			}
+			.svg-input-bezier-black {
+				fill: rgb(0, 0, 0);
+			}
+			.svg-input-bezier-stroke {
+				fill: transparent;
+				stroke: rgb(127, 127, 127);
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<button id = 'bloquear-desbloquear-pontos' class = 'botao-input-bezier' title = 'block/unblock points' style = 'left: 5px;'>
+			<svg width = 45 height = 35>
+				<g id = 'bloqueado'>
+					<circle class = 'svg-input-bezier-stroke' cx = 17.5 cy = 16 r = 7.5 style = 'stroke-width: 5px;'></circle>
+					<rect class = 'svg-input-bezier-grey' x = 6 y = 17.5 rx = 4 ry = 4 width = 23 height = 15 style = 'stroke-width: 3px;stroke: rgba(0, 0, 0, 1);'></rect>
+				</g>
+				<g id = 'desbloqueado' style = 'display: none;'>
+					<circle class = 'svg-input-bezier-stroke' cx = 34 cy = 16 r = 7.5 style = 'stroke-width: 5px;'></circle>
+					<rect class = 'svg-input-bezier-black' x = 6 y = 16 width = 38 height = 16.5></rect>
+					<rect class = 'svg-input-bezier-grey' x = 7.5 y = 19 rx = 2 ry = 2 width = 20 height = 12></rect>
+				</g>
+			</svg>
+		</button>
+		<button id = 'adicionar-pontos' class = 'botao-input-bezier' title = 'add points' style = 'left: 55px;'>
+			<svg width = 35 height = 35>
+				<rect class = 'svg-input-bezier-grey' x = 5 y = 15 rx = 2.5 ry = 2.5 width = 25 height = 5></rect>
+				<rect class = 'svg-input-bezier-grey' x = 15 y = 5 rx = 2.5 ry = 2.5 width = 5 height = 25></rect>
+			</svg>
+		</button>
+		<button id = 'remover-pontos' class = 'botao-input-bezier' title = 'remove points' style = 'left: 105px;'>
+			<svg width = 35 height = 35>
+				<rect class = 'svg-input-bezier-grey' x = 5 y = 15 rx = 2.5 ry = 2.5 width = 25 height = 5></rect>
+			</svg>
+		</button>
+		<button id = 'animar' class = 'botao-input-bezier' title = 'animate' style = 'left: 155px;'>
+			<svg width = 35 height = 35>
+				<polygon class = 'svg-input-bezier-grey' points = '10,10 10,25 25,17.5'></polygon>
+			</svg>
+		</button>
+		<script>
+			function bezier() {
+				var t = arguments[0];
+				var p = [...arguments].slice(1);
+				while(p.length > 2) {
+					var new_p = [];
+					for(var i = 0;i < p.length - 2;i += 2) {
+						new_p.push(p[i] + t * (p[i + 2] - p[i]), p[i + 1] + t * (p[i + 3] - p[i + 1]));
+					}
+					p = new_p;
+				}
+				return {x: p[0], y: p[1]};
+			}
+			function configurar_pontos() {
+				if(bloquear_pontos) {
+					for(var i = 8;i < pontos.length;i += 8) {
+						pontos[i] = pontos[i - 2];
+						pontos[i + 1] = pontos[i - 1];
+					}
+					for(var i = 10;i < pontos.length;i += 8) {
+						if(index_ponto_pressionado == i) {
+							pontos[i - 6] = pontos[i] + 2 * (pontos[i - 4] - pontos[i]);
+							pontos[i - 5] = pontos[i + 1] + 2 * (pontos[i - 3] - pontos[i + 1]);
+						} else {
+							pontos[i] = pontos[i - 6] + 2 * (pontos[i - 4] - pontos[i - 6]);
+							pontos[i + 1] = pontos[i - 5] + 2 * (pontos[i - 3] - pontos[i - 5]);
+						}
+					}
+				}
+			}
+			async function animar_bezier(t = 0) {
+				configurar_pontos();
+				pincel.clearRect(0, 0, largura, altura);
+				pincel.strokeStyle = 'blue';
+				for(var i = 0;i < pontos.length;i += 8) {
+					for(var t = 0;t < 1;t += 0.01) {
+						var ponto1 = bezier(t, ...[...Array(8).keys()].map(x => pontos[i + x]));
+						var ponto2 = bezier(t + 0.01, ...[...Array(8).keys()].map(x => pontos[i + x]));
+						pincel.beginPath();
+						pincel.moveTo(ponto1.x, ponto1.y);
+						pincel.lineTo(ponto2.x, ponto2.y);
+						pincel.stroke();
+						await new Promise(r => setTimeout(r, 1));
+					}
+				}
+				await new Promise(r => setTimeout(r, 1000));
+				desenhar();
+			}
+			function desenhar_bezier(max_t) {
+				pincel.strokeStyle = 'blue';
+				for(var i = 0;i < pontos.length;i += 8) {
+					pincel.beginPath();
+					pincel.moveTo(pontos[i], pontos[i + 1]);
+					for(var t = 0;t < max_t;t += 0.001) {
+						var ponto = bezier(t, ...[...Array(8).keys()].map(x => pontos[i + x]));
+						pincel.lineTo(ponto.x, ponto.y);
+					}
+					pincel.stroke();
+				}
+			}
+			function desenhar(index_ponto_pressionado = -1) {
+				pincel.clearRect(0, 0, largura, altura);
+
+				configurar_pontos();
+				if(editar) {
+					pincel.strokeStyle = 'yellow';
+					pincel.lineJoin = 'round';
+					pincel.lineWidth = 10;
+					for(var i = 0;i < pontos.length;i += 2) {
+						pincel.strokeRect(pontos[i], pontos[i + 1], 1, 1);
+					}
+					pincel.strokeStyle = 'grey';
+					pincel.lineWidth = 2;
+					for(var i = 0;i < pontos.length;i += 4) {
+						pincel.beginPath();
+						pincel.moveTo(pontos[i], pontos[i + 1]);
+						pincel.lineTo(pontos[i + 2], pontos[i + 3]);
+						pincel.stroke();
+					}
+				}
+				desenhar_bezier(1);
+			}
+			function resize() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			resize();
+			window.onresize = function() {
+				resize();
+				desenhar();
+			}
+			var pontos = [];
+			var editar = true;
+			var bloquear_pontos = true;
+			desenhar();
+
+
+			var passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(error) {}
+
+			var index_ponto_pressionado = -1;
+			var agora = Date.now();
+			window.addEventListener('mousedown', function(event) {
+				var delay = Date.now() - agora;
+				agora = Date.now();
+				if(event.path[0] == canvas && delay < 350) {
+					editar = !editar;
+					desenhar();
+				}
+				if(editar) {
+					for(var i = 0;i < pontos.length;i += 2) {
+						if(Math.hypot(pontos[i] - event.clientX, pontos[i + 1] - event.clientY) < 10) {
+							index_ponto_pressionado = i;
+							return;
+						}
+					}
+				}
+			}, passive);
+			window.addEventListener('mouseup', function(event) {
+				index_ponto_pressionado = -1;
+			}, passive);
+			canvas.addEventListener('mousemove', function(event) {
+				if(index_ponto_pressionado != -1) {
+					pontos[index_ponto_pressionado] = event.clientX;
+					pontos[index_ponto_pressionado + 1] = event.clientY;
+					desenhar(index_ponto_pressionado);
+				}
+			}, passive);
+			document.getElementById('bloquear-desbloquear-pontos').addEventListener('click', function(event) {
+				bloquear_pontos = !bloquear_pontos;
+				var svg_bloqueado = document.getElementById('bloqueado');
+				var svg_desbloqueado = document.getElementById('desbloqueado');
+				svg_bloqueado.style.display = bloquear_pontos ? 'block' : 'none';
+				svg_desbloqueado.style.display = bloquear_pontos ? 'none' : 'block';
+				desenhar();
+			}, passive);
+			document.getElementById('adicionar-pontos').addEventListener('click', function(event) {
+				for(var i = 0;i < 4;i++) {
+					pontos.push(Math.random() * largura, Math.random() * altura);
+				}
+				desenhar();
+			}, passive);
+			document.getElementById('remover-pontos').addEventListener('click', function(event) {
+				try {
+					pontos.length -= 8;
+				} catch(error) {}
+				desenhar();
+			}, passive);
+			document.getElementById('animar').addEventListener('click', function(event) {
+				animar_bezier();
+			}, passive);
+		</script>
+	</body>
+</html>
