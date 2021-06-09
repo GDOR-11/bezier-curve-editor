@@ -3,7 +3,13 @@
 <br><br>
 a bezier curve editor (not complete)
 <br><br>
-the buttons are some functionalities, try clicking them! (tip: click the add button first)
+the lock/unlock button is for making the curve continuous or not.
+<br>
+the add button adds more points
+<br>
+the remove button removes points
+<br>
+the play button animates the bezier curve
 <br>
 double click to change the view
 <br>
