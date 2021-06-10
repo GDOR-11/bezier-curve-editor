@@ -112,7 +112,7 @@
 				for(var i = 0;i < pontos.length;i += 8) {
 					pincel.beginPath();
 					pincel.moveTo(pontos[i], pontos[i + 1]);
-					for(var t = 0;t <= 1 + 1e-10;t += 0.001) {
+					for(var t = 0;t <= 1 + 1e-10;t += 0.01) {
 						var ponto = bezier(t, ...[...Array(8).keys()].map(x => pontos[i + x]));
 						pincel.lineTo(ponto.x, ponto.y);
 					}
